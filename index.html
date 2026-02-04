@@ -3,6 +3,8 @@
 <head>
 <meta charset='UTF-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+<!-- WICHTIG: Die SCORM Wrapper Datei muss im selben Ordner liegen -->
+<script src="SCORM_API_wrapper.js"></script> 
 <link rel="stylesheet" href="style.css">
 <title>The Physics of Light – The Raw Material of Vision</title>
 <script>
@@ -12,7 +14,43 @@ window.MathJax = {
 };
 </script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+<!-- CSS Styles -->
 <style>
+/* Base Layout Fix for Moodle Scrolling */
+html {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+body {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: #ffffff;
+    color: #2d3748;
+    line-height: 1.6;
+}
+
+#scroll-wrapper {
+    height: 100%;
+    width: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* Simulation Styles */
 .interactive-simulation-container {
     background: #1a202c;
     border-radius: 12px;
@@ -88,7 +126,9 @@ window.MathJax = {
 </head>
 <body>
 <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
-    <div id="scroll-wrapper"> <!-- Neuer Start-Tag -->
+
+<!-- Wrapper für das Scrolling -->
+<div id="scroll-wrapper">
 
 <div class="lesson-container">
 
@@ -118,13 +158,14 @@ window.MathJax = {
 <section id="section4">
     <p>As you can see in the diagram, Visible Light is just a small band of the Electromagnetic Spectrum, ranging from approximately <strong>400 nanometers (nm)</strong> to <strong>700 nm</strong>.</p>
     
+    <!-- QUESTION 1: 5 Points -->
     <div class="check-your-knowledge">
-        <h3>Check Your Understanding</h3>
+        <h3>Check Your Understanding (5 Pts)</h3>
         <h4>Looking at the spectrum diagram, if a wave has very high energy (like a Gamma ray), does it have a long or a short wavelength?</h4>
         
         <div class="multiple-choice">
-            <div class="choice-option" data-correct="false" onclick="selectChoice(this, false, 'Not quite. High energy correlates with high frequency and short wavelengths.')">Long Wavelength</div>
-            <div class="choice-option" data-correct="true" onclick="selectChoice(this, true, 'Correct! High energy waves are tightly packed with short wavelengths.')">Short Wavelength</div>
+            <div class="choice-option" onclick="selectChoice(this, false, 'Not quite. High energy correlates with high frequency and short wavelengths.', 0)">Long Wavelength</div>
+            <div class="choice-option" onclick="selectChoice(this, true, 'Correct! High energy waves are tightly packed with short wavelengths.', 5)">Short Wavelength</div>
         </div>
     </div>
     <div class="continue-button" onclick="showNextSection(5)">Continue</div>
@@ -200,332 +241,6 @@ window.MathJax = {
         <div class="simulation-status" id="simStatusText">
             Initializing Physics Engine...
         </div>
-    
-        <script>
-        (function() {
-            const canvas = document.getElementById('lightSimCanvas');
-            const ctx = canvas.getContext('2d');
-            const statusText = document.getElementById('simStatusText');
-            
-            // Define Colors using normalized vectors (0-1) for multiplication
-            const colors = {
-                'White':  { r: 1, g: 1, b: 1, hex: '#ffffff' },
-                'Red':    { r: 1, g: 0, b: 0, hex: '#ff4444' },
-                'Green':  { r: 0, g: 1, b: 0, hex: '#44ff44' },
-                'Blue':   { r: 0, g: 0, b: 1, hex: '#4466ff' },
-                'Cyan':   { r: 0, g: 1, b: 1, hex: '#00ffff' } // Added Cyan to test mixing
-            };
-    
-            let state = {
-                light: 'White',
-                material: 'Red',
-                time: 0
-            };
-    
-            // --- Responsive Canvas ---
-            function resize() {
-                // Get the display width
-                const displayWidth = canvas.clientWidth;
-                if (displayWidth === 0) return;
-                // Set actual canvas size to match display (avoids scaling artifacts)
-                canvas.width = displayWidth;
-                canvas.height = 300; // Fixed height
-                draw();
-            }
-            window.addEventListener('resize', resize);
-            
-            // Use ResizeObserver to catch when the container becomes visible
-            const observer = new ResizeObserver(() => resize());
-            observer.observe(canvas);
-    
-            // --- UI Generation ---
-            function createButtons(containerId, settingKey) {
-                const container = document.getElementById(containerId);
-                Object.keys(colors).forEach(key => {
-                    const wrapper = document.createElement('div');
-                    wrapper.className = `color-option ${key === state[settingKey] ? 'active' : ''}`;
-                    wrapper.onclick = () => {
-                        state[settingKey] = key;
-                        updateUI(containerId, wrapper);
-                        updateText();
-                        draw();
-                    };
-    
-                    const btn = document.createElement('div');
-                    btn.className = 'color-btn';
-                    btn.style.backgroundColor = colors[key].hex;
-    
-                    const label = document.createElement('span');
-                    label.className = 'color-label';
-                    label.innerText = key;
-    
-                    wrapper.appendChild(btn);
-                    wrapper.appendChild(label);
-                    container.appendChild(wrapper);
-                });
-            }
-    
-            function updateUI(containerId, activeWrapper) {
-                const container = document.getElementById(containerId);
-                Array.from(container.children).forEach(c => c.classList.remove('active'));
-                activeWrapper.classList.add('active');
-            }
-    
-            // --- The Physics: Vector Multiplication ---
-            function calculatePhysics() {
-                const L = colors[state.light];
-                const M = colors[state.material];
-    
-                // R = L * M
-                const r = L.r * M.r;
-                const g = L.g * M.g;
-                const b = L.b * M.b;
-    
-                // Convert back to 0-255 for CSS
-                const to255 = (v) => Math.floor(v * 255);
-                return {
-                    r: r, g: g, b: b,
-                    css: `rgb(${to255(r)}, ${to255(g)}, ${to255(b)})`,
-                    isBlack: (r + g + b) < 0.05
-                };
-            }
-    
-            function updateText() {
-                const result = calculatePhysics();
-                const box = document.getElementById('simStatusText');
-                
-                let msg = "";
-                let borderColor = "";
-    
-                if (result.isBlack) {
-                    msg = `<strong>Absorption (Black).</strong> <br>Mathematical Proof: [${state.light} Light] × [${state.material} Material] = 0.<br>Since no photons reflect, the object is invisible.`;
-                    borderColor = "#f56565"; 
-                } else if (state.light === 'White') {
-                    msg = `<strong>True Color Reflection.</strong> <br>White light contains all wavelengths. The ${state.material} material rejects (reflects) its own color and absorbs the rest.`;
-                    borderColor = colors[state.material].hex;
-                } else if (state.light === state.material) {
-                    msg = `<strong>High Energy Reflection.</strong> <br>The light matches the material perfectly. Maximum photons are reflected to your eye.`;
-                    borderColor = colors[state.material].hex;
-                } else {
-                     msg = `<strong>Filtered Reflection.</strong> <br>Only the shared color components bounce back. The object appears as the intersection of Light and Material.`;
-                     borderColor = result.css;
-                }
-                
-                statusText.innerHTML = msg;
-                box.style.borderLeftColor = borderColor;
-            }
-    
-            // --- Drawing Engine ---
-            function draw() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                const w = canvas.width;
-                const h = canvas.height;
-                const cy = h / 2 + 20;
-    
-                // Coordinates relative to width
-                const xFlashlight = w * 0.15;
-                const xCube = w * 0.5;
-                const xEye = w * 0.85;
-    
-                // Physics Calculation
-                const result = calculatePhysics();
-                const lightColor = colors[state.light].hex;
-    
-                // 1. Draw Flashlight
-                drawFlashlight(xFlashlight, cy, lightColor);
-    
-                // 2. Draw Incident Beam (Source -> Object)
-                // Even if absorbed, light travels TO the object
-                drawBeam(xFlashlight + 40, cy, xCube - 40, cy, lightColor, 0.6);
-    
-                // 3. Draw Reflected Beam (Object -> Eye)
-                // Only draws if not black
-                if (!result.isBlack) {
-                    drawBeam(xCube + 40, cy, xEye - 20, cy, result.css, 0.6);
-                }
-    
-                // 4. Draw Cube
-                drawIsoCube(xCube, cy, 60, result);
-    
-                // 5. Draw Eye
-                // The eye iris color is what it *sees* (the result)
-                drawEye(xEye, cy, result.isBlack ? '#333' : result.css);
-            }
-    
-            function drawIsoCube(x, y, size, physicsResult) {
-                ctx.save();
-                ctx.translate(x, y);
-    
-                const h = size * 0.5;
-                const v = size * 0.25;
-    
-                // Determine Face Colors
-                // In a dark room, only the face hit by light is visible.
-                // Top and Side are in shadow (Darkness).
-                
-                let frontFace, topFace, sideFace;
-    
-                if (physicsResult.isBlack) {
-                    // If absorbed, it's essentially invisible against black background.
-                    // We draw a very faint outline so user knows it exists, but fill is black.
-                    frontFace = "rgba(20,20,20, 1)";
-                    topFace = "rgba(10,10,10, 1)";
-                    sideFace = "rgba(5,5,5, 1)";
-                    ctx.strokeStyle = "#333";
-                    ctx.lineWidth = 1;
-                } else {
-                    frontFace = physicsResult.css; // The face hit by beam
-                    
-                    // Top and side get NO direct light, so they should be very dark version of material 
-                    // or just black to emphasize the "Dark Room" physics.
-                    // Let's make them extremely dim versions of the reflection to show 3D form 
-                    // but emphasize directionality.
-                    frontFace = physicsResult.css;
-                    topFace = adjustBrightness(physicsResult.r, physicsResult.g, physicsResult.b, 0.2);
-                    sideFace = adjustBrightness(physicsResult.r, physicsResult.g, physicsResult.b, 0.1);
-                }
-    
-                // Draw Top
-                ctx.fillStyle = topFace;
-                ctx.beginPath();
-                ctx.moveTo(0, -size);
-                ctx.lineTo(h * 1.7, -size + v);
-                ctx.lineTo(0, -size + (v*2));
-                ctx.lineTo(-h * 1.7, -size + v);
-                ctx.closePath();
-                ctx.fill();
-                if(physicsResult.isBlack) ctx.stroke();
-    
-                // Draw Side (Right)
-                ctx.fillStyle = sideFace;
-                ctx.beginPath();
-                ctx.moveTo(h * 1.7, -size + v);
-                ctx.lineTo(h * 1.7, size - (v*3));
-                ctx.lineTo(0, size - v);
-                ctx.lineTo(0, -size + (v*2));
-                ctx.closePath();
-                ctx.fill();
-                if(physicsResult.isBlack) ctx.stroke();
-    
-                // Draw Front (Left - facing light)
-                ctx.fillStyle = frontFace;
-                ctx.beginPath();
-                ctx.moveTo(-h * 1.7, -size + v);
-                ctx.lineTo(0, -size + (v*2));
-                ctx.lineTo(0, size - v);
-                ctx.lineTo(-h * 1.7, size - (v*3));
-                ctx.closePath();
-                ctx.fill();
-                if(physicsResult.isBlack) ctx.stroke();
-    
-                ctx.restore();
-            }
-    
-            function adjustBrightness(r, g, b, factor) {
-                return `rgb(${Math.floor(r*255*factor)}, ${Math.floor(g*255*factor)}, ${Math.floor(b*255*factor)})`;
-            }
-    
-            function drawFlashlight(x, y, color) {
-                ctx.save();
-                ctx.translate(x, y);
-                
-                // Handle
-                ctx.fillStyle = "#4a5568";
-                ctx.fillRect(-30, -10, 40, 20);
-                
-                // Bulb Head
-                ctx.fillStyle = "#718096";
-                ctx.beginPath();
-                ctx.moveTo(10, -10);
-                ctx.lineTo(25, -20);
-                ctx.lineTo(25, 20);
-                ctx.lineTo(10, 10);
-                ctx.fill();
-                
-                // Emitter
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.ellipse(25, 0, 4, 12, 0, 0, Math.PI * 2);
-                ctx.fill();
-                
-                ctx.restore();
-            }
-    
-            function drawBeam(x1, y1, x2, y2, color, alpha) {
-                ctx.save();
-                // "lighter" approximates additive light mixing on canvas
-                ctx.globalCompositeOperation = "lighter";
-                
-                const grad = ctx.createLinearGradient(x1, y1, x2, y2);
-                grad.addColorStop(0, color);
-                grad.addColorStop(1, "transparent"); // Light falls off
-    
-                ctx.fillStyle = grad;
-                ctx.globalAlpha = alpha;
-                
-                // Fan shape
-                ctx.beginPath();
-                ctx.moveTo(x1, y1 - 8);
-                ctx.lineTo(x2, y2 - 30); // Hit the whole face
-                ctx.lineTo(x2, y2 + 30);
-                ctx.lineTo(x1, y1 + 8);
-                ctx.fill();
-    
-                // Core intenisty
-                ctx.globalAlpha = alpha * 0.5;
-                ctx.beginPath();
-                ctx.moveTo(x1, y1 - 2);
-                ctx.lineTo(x2, y2);
-                ctx.lineTo(x1, y1 + 2);
-                ctx.fill();
-    
-                ctx.restore();
-            }
-    
-            function drawEye(x, y, pupilColor) {
-                ctx.save();
-                ctx.translate(x, y);
-                
-                // White of eye
-                ctx.fillStyle = "#e2e8f0";
-                ctx.beginPath();
-                ctx.ellipse(0, 0, 20, 12, 0, 0, Math.PI*2);
-                ctx.fill();
-    
-                // Iris/Pupil
-                ctx.fillStyle = pupilColor;
-                ctx.beginPath();
-                ctx.arc(0, 0, 9, 0, Math.PI*2);
-                ctx.fill();
-                
-                // Glint
-                ctx.fillStyle = "white";
-                ctx.beginPath();
-                ctx.arc(-3, -3, 2, 0, Math.PI*2);
-                ctx.fill();
-    
-                ctx.restore();
-            }
-    
-            function animate() {
-                state.time += 0.05;
-                // Redraw every frame to keep sharp on resize, 
-                // though for this static interaction strictly not needed, 
-                // it helps with the 'lighter' composite mode stability.
-                draw(); 
-                requestAnimationFrame(animate);
-            }
-    
-            // Init
-            createButtons('lightControls', 'light');
-            createButtons('materialControls', 'material');
-            resize(); // Trigger initial draw
-            updateText();
-            animate();
-    
-        })();
-        </script>
     </div>
     <div class="continue-button" onclick="showNextSection(12)">Continue</div>
 </section>
@@ -553,40 +268,43 @@ window.MathJax = {
 </section>
 
 <section id="section14">
+    <!-- QUESTION 2: 10 Points -->
     <div class="test-your-knowledge">
-        <h3>Test Your Knowledge</h3>
+        <h3>Test Your Knowledge (10 Pts)</h3>
         <h4>Which of the following represents the approximate range of the visible light spectrum?</h4>
         <div class="multiple-choice">
-            <div class="choice-option" data-correct="false" onclick="selectChoice(this, false, 'No, that is largely the Ultraviolet (UV) range, which is invisible to humans.')">100 nm to 400 nm</div>
-            <div class="choice-option" data-correct="true" onclick="selectChoice(this, true, 'Correct! 400nm is the violet end, and 700nm is the red end.')">400 nm to 700 nm</div>
-            <div class="choice-option" data-correct="false" onclick="selectChoice(this, false, 'No, that is the Infrared (IR) range.')">700 nm to 1000 nm</div>
-            <div class="choice-option" data-correct="false" onclick="selectChoice(this, false, 'No, those are Microwaves and Radio waves.')">1 mm to 1 meter</div>
+            <div class="choice-option" onclick="selectChoice(this, false, 'No, that is largely the Ultraviolet (UV) range, which is invisible to humans.', 0)">100 nm to 400 nm</div>
+            <div class="choice-option" onclick="selectChoice(this, true, 'Correct! 400nm is the violet end, and 700nm is the red end.', 10)">400 nm to 700 nm</div>
+            <div class="choice-option" onclick="selectChoice(this, false, 'No, that is the Infrared (IR) range.', 0)">700 nm to 1000 nm</div>
+            <div class="choice-option" onclick="selectChoice(this, false, 'No, those are Microwaves and Radio waves.', 0)">1 mm to 1 meter</div>
         </div>
     </div>
     <div class="continue-button" onclick="showNextSection(15)">Continue</div>
 </section>
 
 <section id="section15">
+    <!-- QUESTION 3: 10 Points -->
     <div class="test-your-knowledge">
-        <h3>Test Your Knowledge</h3>
+        <h3>Test Your Knowledge (10 Pts)</h3>
         <h4>If you double the frequency \(f\) of a light wave, what happens to its energy?</h4>
         <div class="multiple-choice">
-            <div class="choice-option" data-correct="false" onclick="selectChoice(this, false, 'Incorrect. Energy is directly proportional to frequency.')">The energy is halved.</div>
-            <div class="choice-option" data-correct="false" onclick="selectChoice(this, false, 'Incorrect.')">The energy stays the same.</div>
-            <div class="choice-option" data-correct="true" onclick="selectChoice(this, true, 'Correct! High frequency means high energy.')">The energy doubles.</div>
+            <div class="choice-option" onclick="selectChoice(this, false, 'Incorrect. Energy is directly proportional to frequency.', 0)">The energy is halved.</div>
+            <div class="choice-option" onclick="selectChoice(this, false, 'Incorrect.', 0)">The energy stays the same.</div>
+            <div class="choice-option" onclick="selectChoice(this, true, 'Correct! High frequency means high energy.', 10)">The energy doubles.</div>
         </div>
     </div>
     <div class="continue-button" onclick="showNextSection(16)">Continue</div>
 </section>
 
 <section id="section16">
+    <!-- QUESTION 4: 10 Points -->
     <div class="test-your-knowledge">
-        <h3>Test Your Knowledge</h3>
+        <h3>Test Your Knowledge (10 Pts)</h3>
         <h4>You have a pure blue object. You shine a pure red laser beam on it. What does the object look like?</h4>
         <div class="multiple-choice">
-            <div class="choice-option" data-correct="false" onclick="selectChoice(this, false, 'No. Mixing red and blue paint makes purple, but here we are talking about light absorption. The blue object absorbs red light.')">Purple</div>
-            <div class="choice-option" data-correct="false" onclick="selectChoice(this, false, 'No. The object only reflects blue light. It cannot reflect the red laser.')">Red</div>
-            <div class="choice-option" data-correct="true" onclick="selectChoice(this, true, 'Correct! The blue pigment absorbs the red photons. Since no light is reflected back to your eye, the spot appears black.')">Black (or very dark)</div>
+            <div class="choice-option" onclick="selectChoice(this, false, 'No. Mixing red and blue paint makes purple, but here we are talking about light absorption. The blue object absorbs red light.', 0)">Purple</div>
+            <div class="choice-option" onclick="selectChoice(this, false, 'No. The object only reflects blue light. It cannot reflect the red laser.', 0)">Red</div>
+            <div class="choice-option" onclick="selectChoice(this, true, 'Correct! The blue pigment absorbs the red photons. Since no light is reflected back to your eye, the spot appears black.', 10)">Black (or very dark)</div>
         </div>
     </div>
     <div class="continue-button" id="continue-after-test-knowledge" onclick="showNextSection(17)" style="display: none;">Continue</div>
@@ -603,20 +321,97 @@ window.MathJax = {
     </ul>
     <p>Now that we understand the signal, we are ready to look at the sensor. In the next lesson, we will explore the <strong>Human Eye</strong> and how biology captures these photons.</p>
     
-    <button id="markCompletedBtn" class="mark-completed-button" onclick="toggleCompleted()">✓ Mark as Completed</button>
+    <!-- Final Button: 15 Points -->
+    <button id="markCompletedBtn" class="mark-completed-button" onclick="toggleCompleted()">✓ Mark as Completed (15 Pts)</button>
 </section>
 
 </div>
-</div>
+</div> <!-- End scroll-wrapper -->
+
 <script>
+// --- SCORM & SCORING VARIABLES ---
+// Ensure pipwerks library is loaded (see <head>)
+var scorm = pipwerks.SCORM;
+var lmsConnected = false;
+
+var currentScore = 0;
+// 5 + 10 + 10 + 10 + 15 = 50 Points Total
+var maxScore = 50; 
+
 let currentSection = 1;
 const totalSections = 17;
 
-updateProgress();
-if (currentSection === totalSections) {
-    const completedButton = document.getElementById('markCompletedBtn');
-    if (completedButton) completedButton.classList.add('show');
+// --- INITIALIZATION ---
+window.onload = function() {
+    // 1. Initialize SCORM connection
+    lmsConnected = scorm.init();
+    
+    if(lmsConnected){
+        console.log("LMS Connected successfully.");
+        
+        // Get previous status
+        var status = scorm.get("cmi.core.lesson_status");
+        if(status === "not attempted"){
+            scorm.set("cmi.core.lesson_status", "incomplete");
+            scorm.save();
+        }
+        
+        // Set Scoring Limits in Moodle
+        scorm.set("cmi.core.score.min", "0");
+        scorm.set("cmi.core.score.max", maxScore);
+        
+        // Optional: Restore previous score if student returns
+        var prevScore = scorm.get("cmi.core.score.raw");
+        if(prevScore && prevScore !== "" && !isNaN(prevScore)) {
+            currentScore = parseInt(prevScore, 10);
+            console.log("Restored previous score: " + currentScore);
+        }
+    } else {
+        console.log("Could not connect to LMS (Running locally?)");
+    }
+
+    // 2. Check UI state
+    const completedBtn = document.getElementById('markCompletedBtn');
+    if (completedBtn) {
+        // If already completed in local storage or SCORM, update UI
+        const localDone = localStorage.getItem('lesson_cv-ch1-l2_completed') === 'true';
+        if (localDone) {
+            completedBtn.classList.add('completed');
+            completedBtn.innerHTML = '✅ Completed!';
+        }
+    }
+    
+    // 3. Init Physics Simulation
+    initSimulation();
+
+    // 4. Update Progress Bar
+    updateProgress();
+};
+
+// --- SCORM HELPER FUNCTION ---
+function addPoints(pointsToAdd) {
+    currentScore += pointsToAdd;
+    
+    // Safety cap
+    if(currentScore > maxScore) currentScore = maxScore;
+    
+    console.log(`Added ${pointsToAdd} points. Total: ${currentScore}/${maxScore}`);
+
+    if(lmsConnected){
+        // Send raw score to Moodle
+        scorm.set("cmi.core.score.raw", currentScore);
+        scorm.save();
+    }
 }
+
+// --- ON UNLOAD ---
+window.onunload = function() {
+    if(lmsConnected){
+        scorm.quit();
+    }
+};
+
+// --- NAVIGATION & UI LOGIC ---
 
 function showNextSection(nextSectionId) {
     const nextSectionElement = document.getElementById(`section${nextSectionId}`);
@@ -633,8 +428,8 @@ function showNextSection(nextSectionId) {
         if (completedButton) completedButton.classList.add('show');
     }
     setTimeout(() => { 
-    nextSectionElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); 
-}, 200);
+        nextSectionElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); 
+    }, 200);
 }
 
 function updateProgress() {
@@ -655,33 +450,55 @@ function revealAnswer(id) {
     }
 }
 
-function selectChoice(element, isCorrect, explanation) {
+// UPDATED SELECT CHOICE FUNCTION FOR SCORM
+function selectChoice(element, isCorrect, explanation, points) {
+    // Prevent multiple clicks on the same question
+    const container = element.closest('.multiple-choice');
+    if (container.getAttribute('data-answered') === 'true') {
+        return; 
+    }
+
     const choices = element.parentNode.querySelectorAll('.choice-option');
     choices.forEach(choice => {
         choice.classList.remove('selected', 'correct', 'incorrect');
         const existing = choice.querySelector('.choice-explanation');
         if (existing) existing.remove();
+        // Disable other options visually
+        choice.style.cursor = 'default';
+        choice.style.opacity = '0.7';
     });
+    element.style.opacity = '1'; // keep selected one visible
+
     element.classList.add('selected');
     element.classList.add(isCorrect ? 'correct' : 'incorrect');
+
+    // Show Explanation
     const explanationDiv = document.createElement('div');
     explanationDiv.className = 'choice-explanation';
     explanationDiv.style.display = 'block';
     explanationDiv.innerHTML = `<strong>${isCorrect ? 'Correct!' : 'Not quite.'}</strong> ${explanation}`;
     element.appendChild(explanationDiv);
     
-    // Only show continue button if answer is correct
-    if (!isCorrect) return;
+    // Mark as Answered
+    container.setAttribute('data-answered', 'true');
 
-    
-    const parentSection = element.closest('section');
-    if (parentSection && parentSection.id === 'section16') {
-        const continueButton = document.getElementById('continue-after-test-knowledge');
-        if (continueButton && continueButton.style.display === 'none') {
-            setTimeout(() => {
-                continueButton.style.display = 'block';
-                continueButton.classList.add('show-with-animation');
-            }, 800);
+    // SCORM: Add Points if correct
+    if (isCorrect) {
+        const p = points || 0;
+        addPoints(p);
+    }
+
+    // Logic for Continue Button on Last Question
+    if (isCorrect) {
+        const parentSection = element.closest('section');
+        if (parentSection && parentSection.id === 'section16') {
+            const continueButton = document.getElementById('continue-after-test-knowledge');
+            if (continueButton && continueButton.style.display === 'none') {
+                setTimeout(() => {
+                    continueButton.style.display = 'block';
+                    continueButton.classList.add('show-with-animation');
+                }, 800);
+            }
         }
     }
 }
@@ -696,35 +513,26 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-document.documentElement.style.scrollBehavior = 'smooth';
-
+// UPDATED COMPLETION FUNCTION FOR SCORM
 function toggleCompleted() {
     const button = document.getElementById('markCompletedBtn');
     if (!button) return;
     const isCompleted = button.classList.contains('completed');
+    
     if (!isCompleted) {
-        try {
-            if (window.parent && window.parent.ProgressTracker) {
-                // Tracking IDs updated for the new lesson context
-                let courseId = 'computer-vision';
-                let pathId = 'foundations-of-vision';
-                let moduleId = 'cv-ch1-m1-physics';
-                let lessonId = 'cv-ch1-l2-physics-of-light';
-                
-                if (window.parent.currentRoute) {
-                    const route = window.parent.currentRoute;
-                    if (route.courseId) courseId = route.courseId;
-                    if (route.pathId) pathId = route.pathId;
-                    if (route.moduleId) moduleId = route.moduleId;
-                    if (route.lessonId) lessonId = route.lessonId;
-                }
-                window.parent.ProgressTracker.markLessonCompleted(courseId, pathId, moduleId, lessonId);
-            }
-        } catch (error) {
-            console.error('Error with ProgressTracker:', error);
+        // 1. Add final 15 points
+        addPoints(15);
+
+        // 2. Send "Passed" status to Moodle
+        if(lmsConnected){
+            scorm.set("cmi.core.lesson_status", "passed");
+            scorm.save();
         }
+
+        // 3. UI Updates
         button.classList.add('completed');
-        button.innerHTML = '✅ Completed!';
+        button.innerHTML = `✅ Completed! Score: ${currentScore}/${maxScore}`;
+        
         triggerCelebration();
         localStorage.setItem('lesson_cv-ch1-l2_completed', 'true');
     }
@@ -767,16 +575,262 @@ function showSuccessMessage() {
     setTimeout(() => { if (successMessage.parentNode) successMessage.parentNode.removeChild(successMessage); }, 2500);
 }
 
-window.addEventListener('load', function() {
-    const button = document.getElementById('markCompletedBtn');
-    if (!button) return;
-    // Check local storage for completion
-    const isCompleted = localStorage.getItem('lesson_cv-ch1-l2_completed') === 'true';
-    if (isCompleted) {
-        button.classList.add('completed');
-        button.innerHTML = '✅ Completed!';
+// --- SIMULATION LOGIC (Encapsulated) ---
+function initSimulation() {
+    const canvas = document.getElementById('lightSimCanvas');
+    if(!canvas) return; // Guard clause
+    
+    const ctx = canvas.getContext('2d');
+    const statusText = document.getElementById('simStatusText');
+    
+    const colors = {
+        'White':  { r: 1, g: 1, b: 1, hex: '#ffffff' },
+        'Red':    { r: 1, g: 0, b: 0, hex: '#ff4444' },
+        'Green':  { r: 0, g: 1, b: 0, hex: '#44ff44' },
+        'Blue':   { r: 0, g: 0, b: 1, hex: '#4466ff' },
+        'Cyan':   { r: 0, g: 1, b: 1, hex: '#00ffff' }
+    };
+
+    let state = {
+        light: 'White',
+        material: 'Red',
+        time: 0
+    };
+
+    function resize() {
+        const displayWidth = canvas.clientWidth;
+        if (displayWidth === 0) return;
+        canvas.width = displayWidth;
+        canvas.height = 300;
+        draw();
     }
-});
+    window.addEventListener('resize', resize);
+    
+    const observer = new ResizeObserver(() => resize());
+    observer.observe(canvas);
+
+    function createButtons(containerId, settingKey) {
+        const container = document.getElementById(containerId);
+        if(!container) return;
+        container.innerHTML = ''; // Clear previous if any
+        
+        Object.keys(colors).forEach(key => {
+            const wrapper = document.createElement('div');
+            wrapper.className = `color-option ${key === state[settingKey] ? 'active' : ''}`;
+            wrapper.onclick = () => {
+                state[settingKey] = key;
+                updateUI(containerId, wrapper);
+                updateText();
+                draw();
+            };
+
+            const btn = document.createElement('div');
+            btn.className = 'color-btn';
+            btn.style.backgroundColor = colors[key].hex;
+
+            const label = document.createElement('span');
+            label.className = 'color-label';
+            label.innerText = key;
+
+            wrapper.appendChild(btn);
+            wrapper.appendChild(label);
+            container.appendChild(wrapper);
+        });
+    }
+
+    function updateUI(containerId, activeWrapper) {
+        const container = document.getElementById(containerId);
+        Array.from(container.children).forEach(c => c.classList.remove('active'));
+        activeWrapper.classList.add('active');
+    }
+
+    function calculatePhysics() {
+        const L = colors[state.light];
+        const M = colors[state.material];
+        const r = L.r * M.r;
+        const g = L.g * M.g;
+        const b = L.b * M.b;
+        const to255 = (v) => Math.floor(v * 255);
+        return {
+            r: r, g: g, b: b,
+            css: `rgb(${to255(r)}, ${to255(g)}, ${to255(b)})`,
+            isBlack: (r + g + b) < 0.05
+        };
+    }
+
+    function updateText() {
+        const result = calculatePhysics();
+        let msg = "";
+        let borderColor = "";
+
+        if (result.isBlack) {
+            msg = `<strong>Absorption (Black).</strong> <br>Mathematical Proof: [${state.light} Light] × [${state.material} Material] = 0.<br>Since no photons reflect, the object is invisible.`;
+            borderColor = "#f56565"; 
+        } else if (state.light === 'White') {
+            msg = `<strong>True Color Reflection.</strong> <br>White light contains all wavelengths. The ${state.material} material rejects (reflects) its own color and absorbs the rest.`;
+            borderColor = colors[state.material].hex;
+        } else if (state.light === state.material) {
+            msg = `<strong>High Energy Reflection.</strong> <br>The light matches the material perfectly. Maximum photons are reflected to your eye.`;
+            borderColor = colors[state.material].hex;
+        } else {
+             msg = `<strong>Filtered Reflection.</strong> <br>Only the shared color components bounce back. The object appears as the intersection of Light and Material.`;
+             borderColor = result.css;
+        }
+        
+        statusText.innerHTML = msg;
+        statusText.style.borderLeftColor = borderColor;
+    }
+
+    function draw() {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const w = canvas.width;
+        const h = canvas.height;
+        const cy = h / 2 + 20;
+
+        const xFlashlight = w * 0.15;
+        const xCube = w * 0.5;
+        const xEye = w * 0.85;
+
+        const result = calculatePhysics();
+        const lightColor = colors[state.light].hex;
+
+        drawFlashlight(ctx, xFlashlight, cy, lightColor);
+        drawBeam(ctx, xFlashlight + 40, cy, xCube - 40, cy, lightColor, 0.6);
+        if (!result.isBlack) {
+            drawBeam(ctx, xCube + 40, cy, xEye - 20, cy, result.css, 0.6);
+        }
+        drawIsoCube(ctx, xCube, cy, 60, result);
+        drawEye(ctx, xEye, cy, result.isBlack ? '#333' : result.css);
+    }
+
+    function drawIsoCube(ctx, x, y, size, physicsResult) {
+        ctx.save();
+        ctx.translate(x, y);
+        const h = size * 0.5;
+        const v = size * 0.25;
+        
+        let frontFace, topFace, sideFace;
+        if (physicsResult.isBlack) {
+            frontFace = "rgba(20,20,20, 1)";
+            topFace = "rgba(10,10,10, 1)";
+            sideFace = "rgba(5,5,5, 1)";
+            ctx.strokeStyle = "#333";
+            ctx.lineWidth = 1;
+        } else {
+            frontFace = physicsResult.css;
+            topFace = `rgb(${Math.floor(physicsResult.r*255*0.2)}, ${Math.floor(physicsResult.g*255*0.2)}, ${Math.floor(physicsResult.b*255*0.2)})`;
+            sideFace = `rgb(${Math.floor(physicsResult.r*255*0.1)}, ${Math.floor(physicsResult.g*255*0.1)}, ${Math.floor(physicsResult.b*255*0.1)})`;
+        }
+
+        // Top
+        ctx.fillStyle = topFace;
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.lineTo(h * 1.7, -size + v);
+        ctx.lineTo(0, -size + (v*2));
+        ctx.lineTo(-h * 1.7, -size + v);
+        ctx.closePath();
+        ctx.fill();
+        if(physicsResult.isBlack) ctx.stroke();
+
+        // Side
+        ctx.fillStyle = sideFace;
+        ctx.beginPath();
+        ctx.moveTo(h * 1.7, -size + v);
+        ctx.lineTo(h * 1.7, size - (v*3));
+        ctx.lineTo(0, size - v);
+        ctx.lineTo(0, -size + (v*2));
+        ctx.closePath();
+        ctx.fill();
+        if(physicsResult.isBlack) ctx.stroke();
+
+        // Front
+        ctx.fillStyle = frontFace;
+        ctx.beginPath();
+        ctx.moveTo(-h * 1.7, -size + v);
+        ctx.lineTo(0, -size + (v*2));
+        ctx.lineTo(0, size - v);
+        ctx.lineTo(-h * 1.7, size - (v*3));
+        ctx.closePath();
+        ctx.fill();
+        if(physicsResult.isBlack) ctx.stroke();
+        ctx.restore();
+    }
+
+    function drawFlashlight(ctx, x, y, color) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.fillStyle = "#4a5568";
+        ctx.fillRect(-30, -10, 40, 20);
+        ctx.fillStyle = "#718096";
+        ctx.beginPath();
+        ctx.moveTo(10, -10);
+        ctx.lineTo(25, -20);
+        ctx.lineTo(25, 20);
+        ctx.lineTo(10, 10);
+        ctx.fill();
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.ellipse(25, 0, 4, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function drawBeam(ctx, x1, y1, x2, y2, color, alpha) {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+        grad.addColorStop(0, color);
+        grad.addColorStop(1, "transparent");
+        ctx.fillStyle = grad;
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1 - 8);
+        ctx.lineTo(x2, y2 - 30);
+        ctx.lineTo(x2, y2 + 30);
+        ctx.lineTo(x1, y1 + 8);
+        ctx.fill();
+        ctx.globalAlpha = alpha * 0.5;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1 - 2);
+        ctx.lineTo(x2, y2);
+        ctx.lineTo(x1, y1 + 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function drawEye(ctx, x, y, pupilColor) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.fillStyle = "#e2e8f0";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 20, 12, 0, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = pupilColor;
+        ctx.beginPath();
+        ctx.arc(0, 0, 9, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.arc(-3, -3, 2, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function animate() {
+        state.time += 0.05;
+        draw(); 
+        requestAnimationFrame(animate);
+    }
+
+    createButtons('lightControls', 'light');
+    createButtons('materialControls', 'material');
+    resize();
+    updateText();
+    animate();
+}
 </script>
 </body>
 </html>
