@@ -630,7 +630,7 @@ function showNextSection(nextSectionId) {
         const completedButton = document.getElementById('markCompletedBtn');
         if (completedButton) completedButton.classList.add('show');
     }
-    setTimeout(() => { nextSectionElement.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 200);
+    setTimeout(() => { nextSectionElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 200);
 }
 
 function updateProgress() {
