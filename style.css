@@ -1,25 +1,39 @@
 /* Base */
-html, body {
-    height: 100%; /* Zwingt das Fenster auf die verfügbare Höhe */
+html {
+    height: 100%;
+    width: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden; /* VERBIETET dem Browser/Moodle das Scrollen des Hauptfensters */
-    width: 100%;
+    overflow: hidden; /* Verhindert Scrollen auf Root-Ebene */
 }
 
-/* Der neue Wrapper übernimmt das Scrollen */
+body {
+    /* Layout für den Scroll-Fix */
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Wichtig: Body darf nicht scrollen */
+    
+    /* Design (Wiederhergestellt aus deinem Originalcode) */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: #ffffff;
+    color: #2d3748;
+    line-height: 1.6;
+}
+
+/* Der Wrapper, der scrollt */
 #scroll-wrapper {
     height: 100%;
     width: 100%;
-    overflow-y: auto; /* Erlaubt vertikales Scrollen INNERHALB dieses Containers */
-    -webkit-overflow-scrolling: touch; /* Wichtig für iOS/Tablets */
+    overflow-y: auto; /* Hier findet das Scrollen statt */
+    -webkit-overflow-scrolling: touch;
     position: relative;
 }
 
 * {
     box-sizing: border-box;
 }
-
 /* Progress Bar */
 .faux-progress,
 .progress-container {
