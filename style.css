@@ -1,15 +1,25 @@
 /* Base */
+html {
+    height: 100%;
+    overflow-y: auto; /* Erzwingt den Scrollbalken im Iframe */
+    -webkit-overflow-scrolling: touch; /* Flüssiges Scrollen auf iPads/Handys */
+}
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background: #ffffff;
-    min-height: 100vh;
+    /* Änderung von 100vh zu auto/100% für bessere Iframe-Kompatibilität */
+    min-height: 100%; 
+    height: auto;
     color: #2d3748;
     line-height: 1.6;
+    overflow-y: visible; /* Scrollen wird vom html-tag gesteuert */
 }
 
 /* Progress Bar */
